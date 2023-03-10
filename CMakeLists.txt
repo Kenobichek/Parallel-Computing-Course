@@ -10,3 +10,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Include sub-projects.
 add_subdirectory ("lab1")
+add_subdirectory ("lab2")
