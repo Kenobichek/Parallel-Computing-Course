@@ -1,6 +1,7 @@
 #pragma once
 
 #include "TaskQueue.h"
+#include "TaskWithTimer.h"
 #include <vector>
 #include <functional>
 
@@ -10,7 +11,7 @@ public:
 	ThreadPool() = default;
 	~ThreadPool() = default;
 
-	void addTask(std::function<void()>&& task);
+	void addTask(TaskWithTimer&& task);
 	void initialize(const size_t worker_count);
 	void terminate();
 	void routine();
@@ -24,7 +25,7 @@ private:
 	mutable std::condition_variable_any task_waiter;
 
 	std::vector<std::thread> workers;
-	TaskQueue<std::function<void()>> tasks;
+	TaskQueue<TaskWithTimer> tasks;
 
 	bool initialized = false;
 	bool terminated = false;

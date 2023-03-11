@@ -1,4 +1,5 @@
 #include "ThreadPool.h"
+#include <iostream>
 
 bool ThreadPool::working() const
 {
@@ -34,31 +35,30 @@ void ThreadPool::routine()
 {
 	while (true)
 	{
-		bool task_acquired = false;
-		std::function<void()> task;
+		bool taskAcquired = false;
+		TaskWithTimer taskWithTimer;
 
 		{
 			write_lock _(rw_lock);
-			auto wait_condition = [this, &task_acquired, &task] 
+			auto waitCondition = [this, &taskAcquired, &taskWithTimer]
 			{
-				task_acquired = tasks.pop(task);
-				return terminated || task_acquired;
+				taskAcquired = tasks.pop(taskWithTimer);
+				return terminated || taskAcquired;
 			};
 
-			task_waiter.wait(_, wait_condition);
+			task_waiter.wait(_, waitCondition);
 		}
 
-		if (terminated && !task_acquired)
+		if (terminated && !taskAcquired)
 		{
 			return;
 		}
 
-
-		task();
+		taskWithTimer.task();
 	}
 }
 
-void ThreadPool::addTask(std::function<void()>&& task)
+void ThreadPool::addTask(TaskWithTimer&& task)
 {
 	{
 		read_lock _(rw_lock);
@@ -67,8 +67,15 @@ void ThreadPool::addTask(std::function<void()>&& task)
 		}
 	}
 
-	tasks.emplace(std::forward<std::function<void()>>(task));
-	task_waiter.notify_one();
+	if (tasks.emplace(TaskWithTimer(task)))
+	{
+		task_waiter.notify_one();
+	}
+	else
+	{
+		write_lock _(rw_lock);
+		std::cout << "New task is not added to the queue\n\n";
+	}
 }
 
 void ThreadPool::terminate()

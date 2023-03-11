@@ -1,6 +1,7 @@
 #include "TaskQueue.h"
 #include <functional>
 #include <utility>
+#include "TaskWithTimer.h"
 
 template <typename T>
 bool TaskQueue<T>::empty() const
@@ -27,15 +28,22 @@ void TaskQueue<T>::clear()
 }
 
 template<typename T>
-void TaskQueue<T>::changeTotalTime(const int seconds)
+bool TaskQueue<T>::hasFreeSpace(int taskTime)
 {
-	totalTasksTime += seconds;
+	return taskTime + totalTasksTime <= maxTotalTasksTime;
 }
 
 template<typename T>
-void TaskQueue<T>::emplace(T&& task)
+bool TaskQueue<T>::emplace(T&& task)
 {
-	tasks.emplace(std::forward<T>(task));
+	if (hasFreeSpace(task.time))
+	{
+		totalTasksTime += task.time;
+		tasks.emplace(std::forward<T>(task));
+		return true;
+	}
+	
+	return false;
 }
 
 template <typename T>
@@ -49,9 +57,10 @@ bool TaskQueue<T>::pop(T& task)
 	else
 	{
 		task = std::move(tasks.front());
+		totalTasksTime -= task.time;
 		tasks.pop();
 		return true;
 	}
 }
 
-template class TaskQueue<std::function<void()>>;
+template class TaskQueue<TaskWithTimer>;

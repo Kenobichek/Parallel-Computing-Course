@@ -6,10 +6,13 @@
 
 std::mutex mutex;
 
-void Task::task(const int seconds)
+void Task::task(const int taskId, const int seconds)
 {  
     std::unique_lock<std::mutex> lk(mutex);
-    std::cout << "The task takes a " << seconds << " seconds\n";
+    std::printf("Thread ID: %d\n", std::this_thread::get_id());
+    std::printf("Task ID:: %d\n", taskId);
+    std::printf("The task takes a %d seconds\n\n", seconds);
+
     lk.unlock();
 
     std::this_thread::sleep_for(std::chrono::seconds(seconds));

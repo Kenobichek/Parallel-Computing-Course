@@ -17,12 +17,13 @@ public:
 	size_t size() const;
 	bool empty() const;
 	bool pop(T& task);
-	void emplace(T&& task);
+	bool emplace(T&& task);
 	void clear();
-	void changeTotalTime(const int seconds);
 
 private:
+	bool hasFreeSpace(int taskTime);
 	mutable read_write_lock rw_lock;
 	std::queue<T> tasks;
 	int totalTasksTime;
+	int maxTotalTasksTime = 60;
 };
