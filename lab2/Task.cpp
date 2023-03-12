@@ -4,13 +4,13 @@
 #include <chrono>
 #include <thread>
 
-std::mutex mutex;
+std::mutex out_mutex;
 
 void Task::task(const int taskId, const int seconds)
 {  
-    std::unique_lock<std::mutex> lk(mutex);
+    std::unique_lock<std::mutex> lk(out_mutex);
     std::printf("Thread ID: %d\n", std::this_thread::get_id());
-    std::printf("Task ID:: %d\n", taskId);
+    std::printf("Task ID: %d\n", taskId);
     std::printf("The task takes a %d seconds\n\n", seconds);
 
     lk.unlock();

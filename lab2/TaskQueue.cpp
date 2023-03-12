@@ -36,6 +36,8 @@ bool TaskQueue<T>::hasFreeSpace(int taskTime)
 template<typename T>
 bool TaskQueue<T>::emplace(T&& task)
 {
+	write_lock _(rw_lock);
+
 	if (hasFreeSpace(task.time))
 	{
 		totalTasksTime += task.time;

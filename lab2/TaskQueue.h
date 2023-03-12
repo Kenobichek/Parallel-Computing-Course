@@ -24,6 +24,6 @@ private:
 	bool hasFreeSpace(int taskTime);
 	mutable read_write_lock rw_lock;
 	std::queue<T> tasks;
-	int totalTasksTime;
+	int totalTasksTime = 0;
 	int maxTotalTasksTime = 60;
 };

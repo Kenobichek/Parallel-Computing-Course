@@ -6,7 +6,7 @@ struct TaskWithTimer
 	TaskWithTimer() 
 	{
 		id = 0;
-		task = [](){};
+		task = []{};
 		time = 0;
 	}
 

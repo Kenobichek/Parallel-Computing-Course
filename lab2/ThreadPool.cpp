@@ -1,6 +1,25 @@
 #include "ThreadPool.h"
 #include <iostream>
 
+ThreadPool::ThreadPool(const size_t workerCount)
+{
+	write_lock _(rw_lock);
+
+	if (initialized || terminated)
+	{
+		return;
+	}
+
+	workers.reserve(workerCount);
+
+	for (size_t id = 0; id < workerCount; id++)
+	{
+		workers.emplace_back(&ThreadPool::routine, this);
+	}
+
+	initialized = !workers.empty();
+}
+
 bool ThreadPool::working() const
 {
 	read_lock _(rw_lock);
@@ -10,25 +29,6 @@ bool ThreadPool::working() const
 bool ThreadPool::workingUnsafe() const
 {
 	return initialized && !terminated;
-}
-
-void ThreadPool::initialize(const size_t worker_count)
-{
-	write_lock _(rw_lock);
-
-	if (initialized || terminated)
-	{
-		return;
-	}
-
-	workers.reserve(worker_count);
-
-	for (size_t id = 0; id < worker_count; id++)
-	{
-		workers.emplace_back(&ThreadPool::routine, this);
-	}
-
-	initialized = !workers.empty();
 }
 
 void ThreadPool::routine()
@@ -78,10 +78,15 @@ void ThreadPool::addTask(TaskWithTimer&& task)
 	}
 }
 
-void ThreadPool::terminate()
+void ThreadPool::terminate(bool shouldFinishTasks)
 {
 	{
 		write_lock _(rw_lock);
+
+		if (shouldFinishTasks)
+		{
+			tasks.clear();
+		}
 
 		if (workingUnsafe())
 		{

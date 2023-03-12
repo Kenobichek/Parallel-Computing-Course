@@ -8,12 +8,11 @@
 class ThreadPool
 {
 public:
-	ThreadPool() = default;
+	ThreadPool(const size_t workerCount);
 	~ThreadPool() = default;
 
 	void addTask(TaskWithTimer&& task);
-	void initialize(const size_t worker_count);
-	void terminate();
+	void terminate(bool shouldFinishTasks = true);
 	void routine();
 
 	bool working() const;
