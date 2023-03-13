@@ -71,11 +71,7 @@ void ThreadPool::addTask(TaskWithTimer&& task)
 	{
 		task_waiter.notify_one();
 	}
-	else
-	{
-		write_lock _(rw_lock);
-		std::cout << "New task is not added to the queue\n\n";
-	}
+
 }
 
 void ThreadPool::terminate(bool shouldFinishTasks)

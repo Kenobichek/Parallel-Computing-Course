@@ -1,5 +1,6 @@
 ﻿#include "ThreadPool.h"
 #include "Task.h"
+#include "StatisticCollector.h"
 
 std::mutex mutex;
 
@@ -19,11 +20,14 @@ void addTask(std::shared_ptr<ThreadPool> threadPool, int tasksCount)
 
 int main() 
 {
+    auto statisticCollector = StatisticCollector::getInstance();
+    statisticCollector->resetTime();
+
     int workersCount = 4;
     std::shared_ptr<ThreadPool> myThreadPool = std::make_shared<ThreadPool>(workersCount);
 
-    int threadsCount = 5;
-    int tasksСount = 3;
+    int threadsCount = 3;
+    int tasksСount = 4;
 
     std::vector<std::thread> threads;
 
@@ -31,6 +35,8 @@ int main()
     {
         threads.push_back(std::thread(&addTask, myThreadPool, tasksСount));
     }
+
+    std::printf("Queue filling time: %f\n\n", statisticCollector->elapsedTime());
 
     for (int i = 0; i < threadsCount; i++)
     {
@@ -41,6 +47,8 @@ int main()
 
     myThreadPool->terminate(false);
 
-    
+    std::printf("Time to complete all tasks: %f\n\n", statisticCollector->elapsedTime());
+    std::printf("The number of rejected tasks: %d\n\n", statisticCollector->getRejectedTasksCount());
+
     return 0;
 }

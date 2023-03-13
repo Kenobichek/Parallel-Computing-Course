@@ -2,12 +2,19 @@
 #include <functional>
 #include <utility>
 #include "TaskWithTimer.h"
+#include "StatisticCollector.h"
 
 template <typename T>
 bool TaskQueue<T>::empty() const
 {
 	read_lock _(rw_lock);
 	return tasks.empty();
+}
+
+template<typename T>
+bool TaskQueue<T>::full() const
+{
+	return totalTasksTime == maxTotalTasksTime;
 }
 
 template <typename T>
@@ -44,7 +51,12 @@ bool TaskQueue<T>::emplace(T&& task)
 		tasks.emplace(std::forward<T>(task));
 		return true;
 	}
-	
+	else
+	{
+		statisticCollector->addRejectedTask();
+	}
+
+
 	return false;
 }
 
