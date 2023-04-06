@@ -3,6 +3,7 @@
 #include "TaskQueue.h"
 #include "TaskWithTimer.h"
 #include <vector>
+#include <condition_variable>
 #include <functional>
 
 class ThreadPool

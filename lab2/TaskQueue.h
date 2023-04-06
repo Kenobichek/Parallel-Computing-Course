@@ -1,6 +1,7 @@
 #pragma once
 #include <queue>
 #include <thread>
+#include <mutex>
 #include <shared_mutex>
 #include "StatisticCollector.h"
 
