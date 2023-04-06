@@ -7,22 +7,21 @@
 
 std::vector<int> generateRandomVector(const int sizeArray)
 {
-    std::vector<int> vec;
-    int minValue = 0;
-    int maxValue = 500;
+	std::vector<int> vec;
+	int minValue = 0;
+	int maxValue = 500;
 
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis(minValue, maxValue);
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> dis(minValue, maxValue);
 
-    for (int i = 0; i < sizeArray; i++)
-    {
-        vec.push_back(dis(gen));
-    }
+	for (int i = 0; i < sizeArray; i++)
+	{
+		vec.push_back(dis(gen));
+	}
 
-    return vec;
+	return vec;
 }
-
 
 std::mutex mtx;
 
@@ -71,23 +70,21 @@ void task(const std::vector<int>& vec, int numThreads)
 int main()
 {
 	std::vector<int> vectorSizes = { 50, 100, 500, 5000, 10000 };
-    std::vector<int> numThreadsSizes = { 1, 2, 3, 4 };
-
-
+	std::vector<int> numThreadsSizes = { 1, 2, 3, 4 };
 	for(auto size : vectorSizes)
 	{
-        std::vector<int> vec = generateRandomVector(size);
+		std::vector<int> vec = generateRandomVector(size);
 
-        for (auto threads : numThreadsSizes)
-        {
-            auto startTime = std::chrono::high_resolution_clock::now();
-            task(vec, threads);
-            auto endTime = std::chrono::high_resolution_clock::now(); 
+		for (auto threads : numThreadsSizes)
+		{
+			auto startTime = std::chrono::high_resolution_clock::now();
+			task(vec, threads);
+			auto endTime = std::chrono::high_resolution_clock::now(); 
 
-            std::chrono::duration<double, std::milli> elapsed_time = endTime - startTime;
-            std::cout << "Elapsed time: " << elapsed_time.count() << " ms" << std::endl;
-        }
+			std::chrono::duration<double, std::milli> elapsed_time = endTime - startTime;
+			std::cout << "Elapsed time: " << elapsed_time.count() << " ms" << std::endl;
+		}
 	}
 
-    return 0;
+	return 0;
 }
