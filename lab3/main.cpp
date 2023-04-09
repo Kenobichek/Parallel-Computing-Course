@@ -4,6 +4,8 @@
 #include <chrono>
 #include <mutex>
 #include <thread>
+#include <memory>
+#include <atomic>
 
 std::vector<int> generateRandomVector(const int sizeArray)
 {
@@ -24,22 +26,39 @@ std::vector<int> generateRandomVector(const int sizeArray)
 }
 
 std::mutex mtx;
+int sum = 0;
+std::atomic<int> sum_atomic(0);
 
 int sumOfOddMod2(const std::vector<int>& vec, int start, int end) 
 {
-    int sum = 0;
 
     for (int i = start; i < end; i++) 
     {
-        if (vec[i] % 2 != 0) 
+        if (vec[i] % 2 == 1)
         {
-            mtx.lock();
-            sum += vec[i];
-            mtx.unlock();
+			mtx.lock();
+			sum = (sum + vec[i]) % 2;
+			mtx.unlock();
         }
     }
 
     return sum;
+}
+
+void sumOfOddModUsingAtomic(const std::vector<int>& vec, int begin, int end)
+{
+
+	for (int i = begin; i < end; i++) 
+	{
+		if (vec[i] % 2 == 1)
+		{
+			int expected_sum = sum_atomic.load();
+			while (!sum_atomic.compare_exchange_weak(expected_sum, (expected_sum + vec[i]) % 2))
+			{
+			}
+		}
+	}
+
 }
 
 void task(const std::vector<int>& vec, int numThreads)
@@ -59,6 +78,7 @@ void task(const std::vector<int>& vec, int numThreads)
 		}
 
 		threads[i] = std::thread(&sumOfOddMod2, std::ref(vec), start, end);
+		start = end;
 	}
 
 	for (auto& thread : threads)
@@ -67,13 +87,46 @@ void task(const std::vector<int>& vec, int numThreads)
 	}
 }
 
+void taskUsingAtomic(const std::vector<int>& vec, int numThreads)
+{
+	std::vector<std::thread> threads(numThreads);
+	int numPerThread = vec.size() / numThreads;
+	int remaining = vec.size() % numThreads;
+	int start = 0;
+
+
+	for (int i = 0; i < numThreads; i++)
+	{
+		int end = start + numPerThread;
+
+		if (i < remaining)
+		{
+			end++;
+		}
+
+		threads[i] = std::thread(&sumOfOddModUsingAtomic, std::ref(vec), start, end);
+		start = end;
+	}
+
+	for (auto& thread : threads)
+	{
+		thread.join();
+	}
+}
+
+using second_t = std::chrono::duration<double, std::ratio<1>>;
+
 int main()
 {
-	std::vector<int> vectorSizes = { 50, 100, 500, 5000, 10000 };
+	std::vector<int> vectorSizes = { 1000, 10000, 100000 };
 	std::vector<int> numThreadsSizes = { 1, 2, 3, 4 };
+
 	for(auto size : vectorSizes)
 	{
 		std::vector<int> vec = generateRandomVector(size);
+
+		std::printf("-----------------------------\n");
+		std::printf("Vector size: %d\n", size);
 
 		for (auto threads : numThreadsSizes)
 		{
@@ -82,7 +135,25 @@ int main()
 			auto endTime = std::chrono::high_resolution_clock::now(); 
 
 			std::chrono::duration<double, std::milli> elapsed_time = endTime - startTime;
-			std::cout << "Elapsed time: " << elapsed_time.count() << " ms" << std::endl;
+			std::printf("Number of threads: %d\n", threads);
+			std::printf("Elapsed time: %lf sec\n\n", std::chrono::duration_cast<second_t>(std::chrono::high_resolution_clock::now() - startTime).count());
+			sum = 0;
+		}
+
+		std::printf("****************************\n");
+
+		std::printf("USING ATOMIC\n");
+
+		for (auto threads : numThreadsSizes)
+		{
+			auto startTime = std::chrono::high_resolution_clock::now();
+			taskUsingAtomic(vec, threads);
+			auto endTime = std::chrono::high_resolution_clock::now();
+
+			std::chrono::duration<double, std::milli> elapsed_time = endTime - startTime;
+			std::printf("Number of threads: %d\n", threads);
+			std::printf("Elapsed time: %lf sec\n\n", std::chrono::duration_cast<second_t>(std::chrono::high_resolution_clock::now() - startTime).count());
+			sum_atomic.store(0);
 		}
 	}
 
