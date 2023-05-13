@@ -33,3 +33,12 @@ buffer when a free workstream appears. The task takes a random time between 5 an
 
 * Do some testing and calculate the number of threads created and the average time a thread spends in the waiting state. 
 Determine the maximum and minimum time until the queue is filled, and the number of rejected tasks.
+
+lab3
+
+* Execute tasks without using threads. Measure the execution time task.
+
+* Execute the task according to the option using blocking primitives synchronization. Measure the time of the task, 
+as well as the amount of time that is spent waiting for primitives to be unlocked.
+
+* Perform the task according to the option using atomic variables and CAS operations. Measure the time of the task.
