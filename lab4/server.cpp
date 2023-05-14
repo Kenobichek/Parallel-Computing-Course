@@ -1,46 +1,47 @@
 #include <boost/asio.hpp>
 #include <iostream>
 #include <thread>
+#include <unordered_map>
+#include <functional>
+
+#include "request.h"
 
 using boost::asio::ip::tcp;
 
-void write(tcp::socket& socket)
+void sendData(tcp::socket& socket) 
 {
-	std::array<int, 3> value = { 2, 3, 4 };
-	boost::asio::write(socket, boost::asio::buffer(&value, sizeof(value)));
+		int matrix_size;
+		boost::asio::read(socket, boost::asio::buffer(&matrix_size, sizeof(matrix_size)));
+
+		std::cout << "Matrix size = " << matrix_size << std::endl;
 }
 
-void read(tcp::socket& socket)
+void startComputing(tcp::socket& socket) 
 {
-	std::array<double, 4> buffer;
-	boost::system::error_code error;
 
-	size_t len = socket.read_some(boost::asio::buffer(buffer), error);
-
-	if (error == boost::asio::error::eof)
-	{
-		std::cout << "Connection closed by client" << std::endl;
-	}
-	else if (error) 
-	{
-		std::cout << "Error: " << error.message() << std::endl;
-	}
-	else 
-	{
-		std::cout << "Received " << len << " bytes from client: ";
-		for (int i = 0; i < buffer.size(); i++)
-		{
-			std::cout << buffer[i] << " ";
-		}
-		std::cout << std::endl;
-	}
 }
 
-void handleClient(tcp::socket socket) {
-	std::cout << "Client connected!" << std::endl;
-	write(socket);
-	read(socket);
-	socket.close();
+void get(tcp::socket& socket) 
+{
+
+}
+
+void handleRequest(tcp::socket socket) 
+{
+
+	Request request_type;
+	boost::asio::read(socket, boost::asio::buffer(&request_type, sizeof(int)));
+
+	std::cout << "Request type = " << request_type << std::endl;
+	
+	std::unordered_map<Request, std::function<void(tcp::socket&)>> request_handlers = 
+	{
+		{ Request::SendData, sendData },
+		{ Request::StartComputing, startComputing },
+		{ Request::Get, get }
+	};
+
+	request_handlers[request_type](socket);
 }
 
 int main() {
@@ -56,7 +57,7 @@ int main() {
 		{
 			tcp::socket socket(io_context);
 			acceptor.accept(socket);
-			std::thread(handleClient, std::move(socket)).detach();
+			std::thread(handleRequest, std::move(socket)).detach();
 		}
 	}
 	catch (const char* exception)
