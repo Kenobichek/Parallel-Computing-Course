@@ -4,5 +4,6 @@ enum Request
 {
     SendData,
     StartComputing,
-    Get
+    Get,
+    Exit
 };

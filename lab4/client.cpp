@@ -2,6 +2,7 @@
 #include <iostream>
 #include "request.h"
 #include "matrix.h"
+#include "status.h"
 
 using boost::asio::ip::tcp;
 
@@ -11,10 +12,10 @@ void sendRequest(tcp::socket& socket, const std::vector<std::vector<int>>& matri
 	std::ostream request_stream(&request_buf);
 
 	Request request_type = Request::SendData;
-	request_stream.write((char*)&request_type, 4);
+	request_stream.write((char*)&request_type, sizeof(int));
 
 	int size = static_cast<int>(matrix.size());
-	request_stream.write((char*)&size, 4);
+	request_stream.write((char*)&size, sizeof(size));
 
 	for (int i = 0; i < matrix.size(); i++) 
 	{
@@ -24,47 +25,31 @@ void sendRequest(tcp::socket& socket, const std::vector<std::vector<int>>& matri
 	boost::asio::write(socket, request_buf);
 }
 
-std::vector<std::vector<int>> receiveResult(tcp::socket& socket, const int size) 
+void receiveResult(tcp::socket& socket) 
 {
-	int status;
-	boost::asio::read(socket, boost::asio::buffer(&status, sizeof(status)));
+	while (true) 
+	{
+		Request request_type = Request::Get;
+		boost::asio::write(socket, boost::asio::buffer(&request_type, sizeof(int)));
+		
+		std::this_thread::sleep_for(std::chrono::seconds(2));
 
-	if (status == 0) {
+		Status result_status;
+		boost::asio::read(socket, boost::asio::buffer(&result_status, sizeof(int)));
+
+		if (result_status == Status::DataProcessed) {
+			break;
+		}
 
 		std::cout << "Result is not ready yet" << std::endl;
 
-		while (true) 
-		{
-			int request_type = Request::Get;
-			boost::asio::write(socket, boost::asio::buffer(&request_type, sizeof(request_type)));
-
-			int result_status;
-			boost::asio::read(socket, boost::asio::buffer(&result_status, sizeof(result_status)));
-			if (result_status == 1) {
-				break;
-			}
-
-			std::this_thread::sleep_for(std::chrono::seconds(3));
-		}
+		std::this_thread::sleep_for(std::chrono::seconds(5));
 	}
 
+	std::cout << "The result is ready" << std::endl;
 	std::vector<std::vector<int>> result;
-
-
-    // for (int i = 0; i < numRows; i++) {
-    //     std::vector<int> row;
-    //     for (int j = 0; j < numCols; j++) {
-    //         int value;
-    //         std::memcpy(&value, buffer, sizeof(int));
-    //         buffer += sizeof(int);
-    //         row.push_back(value);
-    //     }
-    //     matrix.push_back(row);
-    // }
-
 	boost::asio::read(socket, boost::asio::buffer(result));
-
-	return result;
+	Matrix::print(result);
 }
 
 int main() {
@@ -82,11 +67,9 @@ int main() {
 
 		std::vector<std::vector<int>> matrix = Matrix::createMatrix(3);
 
-		Matrix::print(matrix);
 		sendRequest(socket, matrix);
 
-		//std::vector<std::vector<int>> result = receiveResult(socket, matrix.size());
-
+		receiveResult(socket);
 	}
 	catch (const char* exception)
 	{
