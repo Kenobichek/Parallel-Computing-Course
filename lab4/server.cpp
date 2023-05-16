@@ -5,15 +5,31 @@
 #include <functional>
 
 #include "request.h"
+#include "matrix.h"
 
 using boost::asio::ip::tcp;
 
-void sendData(tcp::socket& socket) 
+void receiveData(tcp::socket& socket) 
 {
 		int matrix_size;
 		boost::asio::read(socket, boost::asio::buffer(&matrix_size, sizeof(matrix_size)));
 
 		std::cout << "Matrix size = " << matrix_size << std::endl;
+
+		std::vector<std::vector<int>> matrix;
+
+		for(int i = 0; i < matrix_size; i++)
+		{
+			matrix.push_back({});
+			for(int j = 0; j < matrix_size; j++)
+			{
+				int value;
+				boost::asio::read(socket, boost::asio::buffer(&value, sizeof(value)));
+				matrix[i].push_back(value);
+				std::cout << "value: " << value << "\n";
+			}
+		}
+		Matrix::print(matrix);
 }
 
 void startComputing(tcp::socket& socket) 
@@ -36,7 +52,7 @@ void handleRequest(tcp::socket socket)
 	
 	std::unordered_map<Request, std::function<void(tcp::socket&)>> request_handlers = 
 	{
-		{ Request::SendData, sendData },
+		{ Request::SendData, receiveData },
 		{ Request::StartComputing, startComputing },
 		{ Request::Get, get }
 	};

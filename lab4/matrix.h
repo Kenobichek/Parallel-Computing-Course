@@ -2,6 +2,7 @@
 #include <vector>
 #include <thread>
 #include <iostream>
+#include <random>
 
 class Matrix
 {
@@ -11,13 +12,16 @@ public:
     {
         std::vector<std::vector<int>> matrix(size, std::vector<int>(size));
 
-        for (int i = 0; i < size; i++)
-        {
-            for (int j = 0; j < size; j++)
-            {
-                matrix[i][j] = (int)rand() / RAND_MAX;
+        std::random_device rd;
+        std::mt19937 rng(rd());
+        std::uniform_int_distribution<int> uni(1, size);
+
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                matrix[i][j] = uni(rng);
             }
         }
+
         return matrix;
     }
 

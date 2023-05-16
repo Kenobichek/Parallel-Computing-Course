@@ -1,12 +1,12 @@
 ﻿#include <boost/asio.hpp>
 #include <iostream>
 #include "request.h"
+#include "matrix.h"
 
 using boost::asio::ip::tcp;
 
 void sendRequest(tcp::socket& socket, const std::vector<std::vector<int>>& matrix) 
 {
-
 	boost::asio::streambuf request_buf;
 	std::ostream request_stream(&request_buf);
 
@@ -24,18 +24,18 @@ void sendRequest(tcp::socket& socket, const std::vector<std::vector<int>>& matri
 	boost::asio::write(socket, request_buf);
 }
 
-std::vector<int> receiveResult(tcp::socket& socket) 
+std::vector<std::vector<int>> receiveResult(tcp::socket& socket, const int size) 
 {
-
 	int status;
 	boost::asio::read(socket, boost::asio::buffer(&status, sizeof(status)));
 
 	if (status == 0) {
-	std::cout << "Result is not ready yet" << std::endl;
+
+		std::cout << "Result is not ready yet" << std::endl;
 
 		while (true) 
 		{
-			int request_type = 2; // Request result
+			int request_type = Request::Get;
 			boost::asio::write(socket, boost::asio::buffer(&request_type, sizeof(request_type)));
 
 			int result_status;
@@ -48,8 +48,20 @@ std::vector<int> receiveResult(tcp::socket& socket)
 		}
 	}
 
+	std::vector<std::vector<int>> result;
 
-	std::vector<int> result;
+
+    // for (int i = 0; i < numRows; i++) {
+    //     std::vector<int> row;
+    //     for (int j = 0; j < numCols; j++) {
+    //         int value;
+    //         std::memcpy(&value, buffer, sizeof(int));
+    //         buffer += sizeof(int);
+    //         row.push_back(value);
+    //     }
+    //     matrix.push_back(row);
+    // }
+
 	boost::asio::read(socket, boost::asio::buffer(result));
 
 	return result;
@@ -68,24 +80,13 @@ int main() {
 
 		std::cout << "Connected to server!" << std::endl;
 
-		std::vector<std::vector<int>> matrix = {
-			{ 1, 2, 3 },
-			{ 4, 5, 6 },
-			{ 7, 8, 9 },
-		};
+		std::vector<std::vector<int>> matrix = Matrix::createMatrix(3);
 
+		Matrix::print(matrix);
 		sendRequest(socket, matrix);
 
-		// std::vector<int> result = receiveResult(socket);
+		//std::vector<std::vector<int>> result = receiveResult(socket, matrix.size());
 
-		// int size = static_cast<int>(std::sqrt(matrix.size()));
-
-		// for (int i = 0; i < size; i++) {
-		// 	for (int j = 0; j < size; j++) {
-		// 		std::cout << result[i * size + j] << " ";
-		// 	}
-		// 	std::cout << std::endl;
-		// }
 	}
 	catch (const char* exception)
 	{
