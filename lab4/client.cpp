@@ -6,7 +6,7 @@
 
 using boost::asio::ip::tcp;
 
-void sendRequest(tcp::socket& socket, const std::vector<std::vector<int>>& matrix) 
+void sendDataToServer(tcp::socket& socket, const std::vector<std::vector<int>>& matrix) 
 {
 	boost::asio::streambuf request_buf;
 	std::ostream request_stream(&request_buf);
@@ -23,17 +23,28 @@ void sendRequest(tcp::socket& socket, const std::vector<std::vector<int>>& matri
 	}
 
 	boost::asio::write(socket, request_buf);
+
+	std::cout << "Send data to server" << std::endl;
 }
 
-void receiveResult(tcp::socket& socket) 
+void sendRequestToStartComputing(tcp::socket& socket)
+{
+	Request request_type = Request::StartComputing;
+	
+	boost::asio::write(socket, boost::asio::buffer(&request_type, sizeof(int)));
+
+	std::cout << "Send request to start computing" << std::endl;
+}
+
+void receiveResult(tcp::socket& socket, const int matrix_size) 
 {
 	while (true) 
 	{
+		std::cout << "Send GET request" << std::endl;
+
 		Request request_type = Request::Get;
 		boost::asio::write(socket, boost::asio::buffer(&request_type, sizeof(int)));
 		
-		std::this_thread::sleep_for(std::chrono::seconds(2));
-
 		Status result_status;
 		boost::asio::read(socket, boost::asio::buffer(&result_status, sizeof(int)));
 
@@ -46,10 +57,31 @@ void receiveResult(tcp::socket& socket)
 		std::this_thread::sleep_for(std::chrono::seconds(5));
 	}
 
+	std::this_thread::sleep_for(std::chrono::seconds(4));
+
 	std::cout << "The result is ready" << std::endl;
+
 	std::vector<std::vector<int>> result;
-	boost::asio::read(socket, boost::asio::buffer(result));
-	Matrix::print(result);
+
+	for(int i = 0; i < matrix_size; i++)
+	{
+		result.push_back({});
+		for(int j = 0; j < matrix_size; j++)
+		{
+			int value;
+			boost::asio::read(socket, boost::asio::buffer(&value, sizeof(value)));
+			result[i].push_back(value);
+		}
+	}
+}
+
+void sendRequestToEndConnection(tcp::socket& socket)
+{
+	Request request_type = Request::Exit;
+	
+	boost::asio::write(socket, boost::asio::buffer(&request_type, sizeof(int)));
+
+	std::cout << "Send request to end connection" << std::endl;
 }
 
 int main() {
@@ -65,11 +97,12 @@ int main() {
 
 		std::cout << "Connected to server!" << std::endl;
 
-		std::vector<std::vector<int>> matrix = Matrix::createMatrix(3);
+		std::vector<std::vector<int>> matrix = Matrix::createMatrix(1000);
 
-		sendRequest(socket, matrix);
-
-		receiveResult(socket);
+		sendDataToServer(socket, matrix);
+		sendRequestToStartComputing(socket);
+		receiveResult(socket, matrix.size());
+		sendRequestToEndConnection(socket);
 	}
 	catch (const char* exception)
 	{

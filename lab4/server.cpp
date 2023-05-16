@@ -27,17 +27,28 @@ bool receiveData(tcp::socket& socket)
 			int value;
 			boost::asio::read(socket, boost::asio::buffer(&value, sizeof(value)));
 			matrix[i].push_back(value);
-			std::cout << "value: " << value << "\n";
 		}
 	}
 
-	Matrix::print(matrix);
+	server_status = Status::DataNotYetProcessed;
 
+	std::cout << "Data received on the server from the client" << std::endl;
+	
 	return true;
 }
 
 bool startComputing(tcp::socket& socket) 
 {
+	while(server_status != Status::DataNotYetProcessed) {}
+
+	server_status = Status::DataProcessing;
+	std::cout << "Start computing" << std::endl;
+
+	Matrix::placeMaxRowElementsOnMainDiagonal(matrix, 1);
+
+	server_status = Status::DataProcessed;
+	std::cout << "End computing" << std::endl;
+
 	return true;
 }
 
@@ -48,19 +59,25 @@ bool get(tcp::socket& socket)
 
 	request_stream.write((char*)&server_status, sizeof(int));
 
-	if(server_status == Status::DataProcessed){
+	if(server_status == Status::DataProcessed)
+	{
 		for (int i = 0; i < matrix.size(); i++) 
 		{
 			request_stream.write((char*)matrix[i].data(), matrix[i].size() * sizeof(int));
 		}
+
+		std::cout << "Sended data from server to client" << std::endl;
 	}
 
 	boost::asio::write(socket, request_buf);
+
 	return true;
 }
 
 bool endConnection(tcp::socket& socket)
 {
+	std::cout << "End connection" << std::endl;
+
 	return false;
 }
 
@@ -82,9 +99,12 @@ bool handleRequest(tcp::socket& socket)
 	return request_handlers[request_type](socket);
 }
 
-void handleClient(tcp::socket&& socket) {
+void handleClient(tcp::socket&& socket) 
+{
 	std::cout << "Client connected!" << std::endl;
+
 	while(handleRequest(socket)) {}
+	
 	socket.close();
 }
 
