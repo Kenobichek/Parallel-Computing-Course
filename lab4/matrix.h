@@ -3,6 +3,7 @@
 #include <thread>
 #include <iostream>
 #include <random>
+#include <chrono>
 
 class Matrix
 {
@@ -25,8 +26,9 @@ public:
         return matrix;
     }
 
-    static void placeMaxRowElementsOnMainDiagonal(std::vector<std::vector<int>>& matrix, const int numThreads)
+    static long long placeMaxRowElementsOnMainDiagonal(std::vector<std::vector<int>>& matrix, const int numThreads)
     {
+        auto startTime = std::chrono::high_resolution_clock::now();
 
         std::vector<std::thread> threads(numThreads);
         int numRowsPerThread = matrix.size() / numThreads;
@@ -49,6 +51,12 @@ public:
         {
             thread.join();
         }
+
+        auto endTime = std::chrono::high_resolution_clock::now();
+
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+
+        return duration.count();
     }
 
     static void print(const std::vector<std::vector<int>>& matrix)

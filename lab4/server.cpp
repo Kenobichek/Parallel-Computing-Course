@@ -11,6 +11,7 @@ using boost::asio::ip::tcp;
 
 std::unordered_map<tcp::socket*, Status> server_status_map;
 std::unordered_map<tcp::socket*, std::vector<std::vector<int>>> matrix_map;
+std::unordered_map<tcp::socket*, std::promise<int>> promises_map;
 
 bool receiveData(tcp::socket& socket) 
 {
@@ -47,10 +48,13 @@ bool startComputing(tcp::socket& socket)
     server_status_map[&socket] = Status::DataProcessing;
     std::cout << "Start computing" << std::endl;
 
-    Matrix::placeMaxRowElementsOnMainDiagonal(matrix_map[&socket], 1);
+    std::thread worker([&]() {
+        int result = Matrix::placeMaxRowElementsOnMainDiagonal(matrix_map[&socket], 1);
+        promises_map[&socket].set_value(result);
+        server_status_map[&socket] = Status::DataProcessed;
+    });
 
-    server_status_map[&socket] = Status::DataProcessed;
-    std::cout << "End computing" << std::endl;
+    worker.detach();
 
     return true;
 }
@@ -70,6 +74,11 @@ bool get(tcp::socket& socket)
         {
             request_stream.write((char*)matrix[i].data(), matrix[i].size() * sizeof(int));
         }
+        
+        std::future<int> future = promises_map[&socket].get_future();
+
+        int result = future.get();
+        request_stream.write((char*)&result, sizeof(int));
 
         std::cout << "Sent data from server to client" << std::endl;
     }
@@ -116,7 +125,8 @@ void handleClient(tcp::socket&& socket)
     socket.close();
 }
 
-int main() {
+int main() 
+{
     try
     {
         boost::asio::io_context io_context;

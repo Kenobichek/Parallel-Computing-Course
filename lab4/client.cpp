@@ -73,6 +73,11 @@ void receiveResult(tcp::socket& socket, const int matrix_size)
 			result[i].push_back(value);
 		}
 	}
+
+	int execution_time = 0;
+	boost::asio::read(socket, boost::asio::buffer(&execution_time, sizeof(int)));
+
+	std::cout << "Program execution time: " << execution_time  << " milliseconds" << std::endl;
 }
 
 void sendRequestToEndConnection(tcp::socket& socket)
